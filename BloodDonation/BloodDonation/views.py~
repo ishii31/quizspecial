@@ -1,0 +1,62 @@
+
+from django.shortcuts import render
+# blood_donation/views.py
+from django.views import View
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import BloodDonationRequest
+from .forms import BloodDonationRequestForm
+
+class CreateBloodDonationRequestView(View):
+    def get(self, request):
+        form = BloodDonationRequestForm()
+        return render(request, 'create_request.html', {'form': form})
+
+    def post(self, request):
+        form = BloodDonationRequestForm(request.POST)
+        if form.is_valid():
+            blood_request = form.save(commit=False)
+            blood_request.user = request.user
+            if not request.user.profile.availability and blood_request.request_type == 'donating':
+                return render(request, 'create_request.html', {'form': form, 'error': 'You cannot create a donation request.'})
+            blood_request.save()
+            return redirect('request_list')  # Redirect to list view
+        return render(request, 'create_request.html', {'form': form})
+
+class EditBloodDonationRequestView(View):
+    def get(self, request, pk):
+        blood_request = get_object_or_404(BloodDonationRequest, pk=pk)
+        form = BloodDonationRequestForm(instance=blood_request)
+        return render(request, 'edit_request.html', {'form': form})
+
+    def post(self, request, pk):
+        blood_request = get_object_or_404(BloodDonationRequest, pk=pk)
+        form = BloodDonationRequestForm(request.POST, instance=blood_request)
+        if form.is_valid():
+            form.save()
+            return redirect('request_detail', pk=blood_request.pk)
+        return render(request, 'edit_request.html', {'form': form})
+
+class DeleteBloodDonationRequestView(View):
+    def post(self, request, pk):
+        blood_request = get_object_or_404(BloodDonationRequest, pk=pk)
+        blood_request.delete()
+        return redirect('request_list')
+
+class BloodDonationRequestListView(View):
+    def get(self, request):
+        requests = BloodDonationRequest.objects.all()
+        return render(request, 'request_list.html', {'requests': requests})
+
+class BloodDonationRequestDetailView(View):
+    def get(self, request, pk):
+        blood_request = get_object_or_404(BloodDonationRequest, pk=pk)
+        return render(request, 'request_detail.html', {'request': blood_request})
+
+
+
+def  login(request):
+    return render(request, 'homepage.html')
+def  page_two(request):
+    return render(request, 'home.html')
+def  profile(request):
+    return render(request, 'profile.html')
